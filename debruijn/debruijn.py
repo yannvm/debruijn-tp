@@ -143,6 +143,52 @@ def save_contigs(contig_list, contig_filename):
             f_out.write(fill(contig[0]) + "\n")
 
 
+def std(list):
+    return statistics.stdev(list)
+
+
+def path_average_weight(G, path):
+    weight = 0
+
+    for i in range(len(path) - 1):
+        weight += G.edges[path[i], path[i+1]]["weight"]
+
+    return weight / (len(path) - 1)
+
+
+def remove_paths(G, path_list, delete_entry_node, delete_sink_node):
+    for i in range(len(path_list)):
+        G.remove_nodes_from(path_list[i][1:-1])
+        if delete_entry_node:
+            G.remove_node(path_list[i][0])
+        if delete_sink_node:
+            G.remove_node(path_list[i][-1])
+    return G
+    
+
+def delete_entry_node():
+    pass
+
+def delete_sink_node():
+    pass
+
+def select_best_path():
+    pass
+
+def solve_bubble():
+    pass
+
+def simplify_bubbles():
+    pass
+
+def solve_entry_tips():
+    pass
+
+def solve_out_tips():
+    pass
+
+
+
 
 #==============================================================
 # Main program
