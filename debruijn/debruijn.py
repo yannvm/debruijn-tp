@@ -149,7 +149,6 @@ def std(list):
 
 def path_average_weight(G, path):
     weight = 0
-
     for i in range(len(path) - 1):
         weight += G.edges[path[i], path[i+1]]["weight"]
 
@@ -157,35 +156,134 @@ def path_average_weight(G, path):
 
 
 def remove_paths(G, path_list, delete_entry_node, delete_sink_node):
-    for i in range(len(path_list)):
-        G.remove_nodes_from(path_list[i][1:-1])
+    for path in path_list:
+        G.remove_nodes_from(path[1:-1])
         if delete_entry_node:
-            G.remove_node(path_list[i][0])
+            G.remove_node(path[0])
         if delete_sink_node:
-            G.remove_node(path_list[i][-1])
+            G.remove_node(path[-1])
     return G
+
+
+def select_best_path(G, path_list, path_length, path_weight, delete_entry_node = False, delete_sink_node = False):
+
+    # Weights
+    path_list_wmax = []
+    weight_wmax = []
+    length_wmax = []
+
+    for i, path in enumerate(path_list):
+        if path_weight[i] == max(path_weight):
+            path_list_wmax.append(path)
+            weight_wmax.append(path_weight[i])
+            length_wmax.append(path_length[i])
+
+
+    # Length
+    path_list_lmax = []
+    weight_lmax = []
+    length_lmax = []
+
+    for i, path in enumerate(path_list_wmax):
+        if length_wmax[i] == max(length_wmax):
+            path_list_lmax.append(path)
+            weight_lmax.append(weight_wmax[i])
+            length_lmax.append(length_wmax[i])
+
+    # Random
+    while len(path_list_lmax) > 1:
+        path_list_lmax.pop(statistics.randint(path_list_lmax))
+
+
+    wrong_paths = []
+
+    for path in path_list:
+        if path not in path_list_lmax:
+            wrong_paths.append(path)
+
+
+    G = remove_paths(G, wrong_paths, delete_entry_node, delete_sink_node)
+    return G
+
+
+
+def solve_bubble(G, a_node, d_node):
+    path_list = []
+    path_length = []
+    path_weight = []
+
+    for path in nx.all_simple_paths(G, source=a_node, target=d_node):
+        path_list.append(path)
+        path_length.append(len(path))
+        path_weight.append(path_average_weight(G, path))
+
+    G = select_best_path(G, path_list, path_length, path_weight, delete_entry_node = False, delete_sink_node = False)
+    return G
+
+
+def simplify_bubbles(G):
+    wrong_nodes = []
+
+    for d_node in G.nodes:
+        pred_list = list(G.predecessors(d_node))
+        if len(pred_list) > 1:
+            a_node = nx.lowest_common_ancestor(G, pred_list[0], pred_list[1])
+            wrong_nodes.append([a_node, d_node])
+
+    for nodes_ad in wrong_nodes:
+        G = solve_bubble(G, nodes_ad[0], nodes_ad[1])
+
+    return G
+
+
+def solve_entry_tips(G, entry_list):
+
+    mult_ancestors = []
     
+    for node in entry_list:
+        for next_node in nx.descendants(G, node):
+            if len(G.pred[next_node]) >= 2 and next_node not in mult_ancestors:
+                mult_ancestors.append(next_node)
 
-def delete_entry_node():
-    pass
+    paths_list = []
+    path_length = []
+    path_weight = []
 
-def delete_sink_node():
-    pass
+    for node in entry_list:
+        for node2 in mult_ancestors:
+            for path in nx.all_simple_paths(G, node, node2):
+                    paths_list.append(path)
+                    path_length.append(len(path))
+                    path_weight.append(path_average_weight(G, path))
 
-def select_best_path():
-    pass
+        G = select_best_path(G, paths_list, path_length, path_weight, delete_entry_node=True, delete_sink_node=False)
 
-def solve_bubble():
-    pass
+    return G
 
-def simplify_bubbles():
-    pass
 
-def solve_entry_tips():
-    pass
+def solve_out_tips(G, entry_list):
 
-def solve_out_tips():
-    pass
+    mult_descendants = []
+    
+    for node in entry_list:
+        for next_node in nx.ancestors(G, node):
+            if len(G.succ[next_node]) >= 2 and next_node not in mult_descendants:
+                mult_descendants.append(next_node)
+
+    paths_list = []
+    path_length = []
+    path_weight = []
+
+    for node in entry_list:
+        for node2 in mult_descendants:
+            for path in nx.all_simple_paths(G, node2, node):
+                    paths_list.append(path)
+                    path_length.append(len(path))
+                    path_weight.append(path_average_weight(G, path))
+
+        G = select_best_path(G, paths_list, path_length, path_weight, delete_entry_node=False, delete_sink_node=True)
+
+    return G
 
 
 
